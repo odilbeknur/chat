@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Обучение технике безопасности</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Основной чат -->
+        <div class="chat-section">
+            <div class="chat-header">
+                <h1>Чат-бот по технике безопасности</h1>
+                <p class="subtitle">Задайте вопрос о безопасности в электроэнергетике</p>
+            </div>
+            
+            <div id="chat-messages" class="messages">
+                <div class="message bot-message">
+                    Добрый день! Я помогу вам изучить технику безопасности. Задайте вопрос, например:
+                    <ul class="examples">
+                        <li>Какие средства защиты нужно использовать?</li>
+                        <li>Как оказать первую помощь при ударе током?</li>
+                        <li>Какие правила работы с высоким напряжением?</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="input-area">
+                <input type="text" id="user-input" placeholder="Введите ваш вопрос...">
+                <button id="send-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Блок рекомендаций -->
+        <div class="recommendations-section">
+            <div class="recommendations-header">
+                <h2>Рекомендуемые материалы</h2>
+                <div class="search-box">
+                    <input type="text" id="search-input" placeholder="Поиск материалов...">
+                </div>
+            </div>
+            
+            <div id="recommended-materials" class="materials-grid">
+                <!-- Материалы будут загружены здесь -->
+                <div class="placeholder">
+                    <img src="/static/icons/book-icon.svg" alt="Книга">
+                    <p>Здесь появятся рекомендованные материалы после вашего вопроса</p>
+                </div>
+            </div>
+            
+            <div class="stats">
+                <div class="stat-item">
+                    <span class="stat-value">15+</span>
+                    <span class="stat-label">учебных материалов</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-value">7</span>
+                    <span class="stat-label">тематических разделов</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="/static/script.js"></script>
+</body>
+</html>
