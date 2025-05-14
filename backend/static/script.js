@@ -1,108 +1,179 @@
 document.addEventListener('DOMContentLoaded', () => {
-   const chatMessages = document.getElementById('chat-messages');
-   const userInput = document.getElementById('user-input');
-   const sendBtn = document.getElementById('send-btn');
+    const chatMessages = document.getElementById('chat-messages');
+    const userInput = document.getElementById('user-input');
+    const sendBtn = document.getElementById('send-btn');
+    const typingIndicator = document.getElementById('typing-indicator');
+    const recommendedMaterials = document.getElementById('recommended-materials');
 
-   async function updateRecommendedMaterials(userText) {
-    // Определяем тему
-    const topicResponse = await fetch('/api/detect-topic', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: userText, user_id: 'guest' })
+    // Функция показа/скрытия индикатора
+    function showTypingIndicator(show) {
+        typingIndicator.style.display = show ? 'flex' : 'none';
+        if (show) {
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+    }
+
+    // Добавление сообщения в чат
+    function addMessage(text, className) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${className}`;
+        
+        // Обрабатываем переносы строк
+        const formattedText = text.replace(/\n/g, '<br>');
+        messageDiv.innerHTML = formattedText;
+        
+        chatMessages.appendChild(messageDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    // Отображение рекомендованных материалов
+    async function updateRecommendedMaterials(userText) {
+        try {
+            // Определяем тему
+            const topicResponse = await fetch('/api/detect-topic', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: userText, user_id: 'guest' })
+            });
+            
+            if (!topicResponse.ok) throw new Error('Ошибка определения темы');
+            
+            const { topic } = await topicResponse.json();
+
+            // Получаем материалы по теме
+            const materialsResponse = await fetch(`/api/materials/${topic}`);
+            if (!materialsResponse.ok) throw new Error('Ошибка загрузки материалов');
+            
+            const materials = await materialsResponse.json();
+            
+            // Отображаем материалы
+            displayRecommendedMaterials(materials);
+            
+        } catch (error) {
+            console.error('Ошибка при обновлении материалов:', error);
+            recommendedMaterials.innerHTML = `
+                <div class="error-message">
+                    Не удалось загрузить материалы. Попробуйте позже.
+                </div>
+            `;
+        }
+    }
+
+    // Функция отображения материалов
+    function displayRecommendedMaterials(materials) {
+        if (!materials || materials.length === 0) {
+            recommendedMaterials.innerHTML = `
+                <div class="placeholder">
+                    <img src="/static/icons/book-icon.svg" alt="Книга">
+                    <p>Материалы не найдены</p>
+                </div>
+            `;
+            return;
+        }
+
+        recommendedMaterials.innerHTML = materials.map(material => `
+            <div class="material-card">
+                <div class="material-header">
+                    <span class="material-icon ${getFileIconClass(material.file)}"></span>
+                    <h3>${material.name}</h3>
+                </div>
+                <div class="material-footer">
+                    <span class="file-type">${getFileExtension(material.file)}</span>
+                    <a href="/static/materials/${material.file}" target="_blank" class="download-btn">
+                        Открыть
+                    </a>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    // Получение класса иконки для файла
+    function getFileIconClass(filename) {
+        const ext = filename.split('.').pop().toLowerCase();
+        switch(ext) {
+            case 'pdf': return 'icon-pdf';
+            case 'mp4': case 'mov': return 'icon-video';
+            case 'jpg': case 'jpeg': case 'png': return 'icon-image';
+            case 'doc': case 'docx': return 'icon-doc';
+            default: return 'icon-file';
+        }
+    }
+
+    // Получение расширения файла
+    function getFileExtension(filename) {
+        return filename.split('.').pop().toUpperCase();
+    }
+
+    // Отправка сообщения
+    async function sendMessage() {
+        const messageText = userInput.value.trim();
+        if (!messageText) return;
+
+        // Добавляем сообщение пользователя
+        addMessage(messageText, 'user-message');
+        userInput.value = '';
+        
+        // Показываем индикатор
+        showTypingIndicator(true);
+        
+        try {
+            // Обновляем рекомендации (параллельно)
+            updateRecommendedMaterials(messageText);
+            
+            // Отправляем запрос к API
+            const response = await fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: messageText, user_id: 'guest' })
+            });
+            
+            if (!response.ok) throw new Error('Ошибка сервера');
+            
+            const data = await response.json();
+            
+            // Скрываем индикатор и показываем ответ
+            showTypingIndicator(false);
+            addMessage(data.response, 'bot-message');
+            
+        } catch (error) {
+            showTypingIndicator(false);
+            addMessage("Произошла ошибка при обработке запроса", 'bot-message error');
+            console.error('Ошибка:', error);
+        }
+    }
+
+    // Обработчики событий
+    sendBtn.addEventListener('click', sendMessage);
+    userInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') sendMessage();
     });
-    const { topic } = await topicResponse.json();
 
-    // Получаем материалы по теме
-    const materialsResponse = await fetch(`/api/materials/${topic}`);
-    const materials = await materialsResponse.json();
-    
-    // Отображаем
-    const container = document.getElementById('recommended-materials');
-    container.innerHTML = materials.map(m => `
-        <div class="material-card">
-            <a href="/static/materials/${m.file}" target="_blank">
-                📄 ${m.name}
-            </a>
-        </div>
-    `).join('');
-}
-   // Отправка сообщения
-   async function sendMessage() {
-       const text = userInput.value.trim();
-       if (!text) return;
+    // Инициализация - примеры вопросов
+    const exampleQuestions = [
+        "Какие средства защиты нужно использовать при работе с высоким напряжением?",
+        "Как оказать первую помощь при ударе током?",
+        "Какие основные правила пожарной безопасности на энергообъектах?"
+    ];
 
-       // Добавляем сообщение пользователя
-       addMessage(text, 'user-message');
-       userInput.value = '';
-      // Обновляем рекомендации
+    // Добавляем примеры вопросов в интерфейс
+    function initExampleQuestions() {
+        const examplesContainer = document.createElement('div');    
+        examplesContainer.className = 'examples-container';
+        
+        exampleQuestions.forEach(question => {
+            const exampleBtn = document.createElement('button');
+            exampleBtn.className = 'example-question';
+            exampleBtn.textContent = question;
+            exampleBtn.addEventListener('click', () => {
+                userInput.value = question;
+                userInput.focus();
+            });
+            examplesContainer.appendChild(exampleBtn);
+        });
+        
+        chatMessages.appendChild(examplesContainer);
+    }
 
-    await updateRecommendedMaterials(text);  // <-- Добавили эту строку!
-
-       // Отправляем на сервер
-       try {
-           const response = await fetch('/api/chat', {
-               method: 'POST',
-               headers: { 'Content-Type': 'application/json' },
-               body: JSON.stringify({ text, user_id: 'guest' })
-           });
-           const data = await response.json();
-           addMessage(data.response, 'bot-message');
-       } catch (error) {
-           addMessage("Ошибка соединения с сервером", 'bot-message error');
-       }
-   }
-
-   // Добавление сообщения в чат
-   function addMessage(text, className) {
-       const msgDiv = document.createElement('div');
-       msgDiv.className = `message ${className}`;
-       msgDiv.textContent = text;
-       chatMessages.appendChild(msgDiv);
-       chatMessages.scrollTop = chatMessages.scrollHeight;
-   }
-
-   function displayRecommendedMaterials(materials) {
-      const container = document.getElementById("recommended-materials");
-      container.innerHTML = "";  // Очистим старые материалы
-  
-      materials.forEach(material => {
-          const div = document.createElement("div");
-  
-          const title = document.createElement("p");
-          title.textContent = material.name;
-  
-          // Определяем тип файла
-          if (material.file.endsWith(".jpg") || material.file.endsWith(".jpeg") || material.file.endsWith(".png") || material.file.endsWith(".webp")) {
-              const img = document.createElement("img");
-              img.src = material.file;
-              img.alt = material.name;
-              img.style.maxWidth = "100%";
-              div.appendChild(title);
-              div.appendChild(img);
-          } else if (material.file.endsWith(".mp4")) {
-              const video = document.createElement("video");
-              video.src = material.file;
-              video.controls = true;
-              video.style.maxWidth = "100%";
-              div.appendChild(title);
-              div.appendChild(video);
-          } else {
-              const link = document.createElement("a");
-              link.href = material.file;
-              link.textContent = "Открыть материал";
-              link.target = "_blank";
-              div.appendChild(title);
-              div.appendChild(link);
-          }
-  
-          container.appendChild(div);
-      });
-  }
-  
-
-   // Обработчики событий
-   sendBtn.addEventListener('click', sendMessage);
-   userInput.addEventListener('keypress', (e) => {
-       if (e.key === 'Enter') sendMessage();
-   });
+    // Инициализируем при загрузке
+    initExampleQuestions();
 });

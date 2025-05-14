@@ -4,6 +4,7 @@ from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 from .config import model, SAFETY_PROMPT, SafetyTopic, detect_topic, TOPIC_MATERIALS
 import os
+from fastapi.responses import StreamingResponse
 
 app = FastAPI()
 
@@ -44,3 +45,15 @@ async def get_materials_by_topic(topic: SafetyTopic):
 @app.get("/api/materials/{topic}")
 async def get_materials(topic: SafetyTopic):
    return get_topic_materials(topic)
+
+@app.post("/api/chat-stream")
+async def chat_stream(message: ChatMessage):
+    async def generate():
+        response = model.generate_content(
+            SAFETY_PROMPT + f"\nВопрос: {message.text}",
+            stream=True
+        )
+        for chunk in response:
+            yield f"data: {chunk.text}\n\n"
+    
+    return StreamingResponse(generate(), media_type="text/event-stream")

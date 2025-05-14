@@ -147,7 +147,7 @@ body {
 
 #search-input {
    width: 100%;
-   padding: 10px 15px;
+   padding: 10px 5px;
    border: 1px solid var(--border-color);
    border-radius: 24px;
    outline: none;
@@ -253,4 +253,196 @@ body {
        height: auto;
        min-height: 50vh;
    }
+}
+
+.typing-indicator {
+    display: none; /* По умолчанию скрыт */
+    align-items: center;
+    padding: 10px 20px;
+    background: #f0f0f0;
+    border-radius: 18px;
+    width: fit-content;
+    margin: 5px 0 15px;
+    font-size: 0.9rem;
+    color: #666;
+}
+
+.typing-indicator .dot {
+    width: 8px;
+    height: 8px;
+    background: #666;
+    border-radius: 50%;
+    margin-right: 5px;
+    animation: bounce 1.5s infinite ease-in-out;
+}
+
+.typing-indicator .dot:nth-child(1) {
+    animation-delay: 0s;
+}
+
+.typing-indicator .dot:nth-child(2) {
+    animation-delay: 0.3s;
+}
+
+.typing-indicator .dot:nth-child(3) {
+    animation-delay: 0.6s;
+    margin-right: 10px;
+}
+
+@keyframes bounce {
+    0%, 60%, 100% {
+        transform: translateY(0);
+    }
+    30% {
+        transform: translateY(-5px);
+    }
+}
+
+.message.typing {
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0.5; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Стили для контейнера примеров вопросов */
+.examples-container {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 15px;
+    padding: 10px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+}
+
+.example-question {
+    padding: 8px 12px;
+    background-color: #ffffff;
+    border: 1px solid #e0e0e0;
+    border-radius: 20px;
+    color: #1a73e8;
+    font-size: 0.9rem;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.example-question:hover {
+    background-color: #f0f7ff;
+    border-color: #c2d9f0;
+    transform: translateY(-1px);
+}
+
+.example-question:active {
+    background-color: #e0e8f0;
+    transform: translateY(0);
+}
+
+/* Стили для иконок материалов */
+.material-icon {
+    display: inline-block;
+    width: 24px;
+    height: 24px;
+    margin-right: 8px;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    vertical-align: middle;
+}
+
+.icon-pdf {
+    background-image: url('/static/icons/pdf-icon.svg');
+}
+
+.icon-video {
+    background-image: url('/static/icons/video-icon.svg');
+}
+
+.icon-image {
+    background-image: url('/static/icons/image-icon.svg');
+}
+
+.icon-doc {
+    background-image: url('/static/icons/doc-icon.svg');
+}
+
+.icon-file {
+    background-image: url('/static/icons/file-icon.svg');
+}
+
+/* Дополнительные стили для карточек материалов */
+.material-card {
+    padding: 12px;
+    background: white;
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+    margin-bottom: 10px;
+    transition: all 0.2s ease;
+}
+
+.material-card:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    transform: translateY(-2px);
+}
+
+.material-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.material-header h3 {
+    margin: 0;
+    font-size: 0.95rem;
+    color: #333;
+}
+
+.material-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 8px;
+}
+
+.file-type {
+    font-size: 0.75rem;
+    color: #666;
+    background: #f0f0f0;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.download-btn {
+    padding: 4px 10px;
+    background-color: #1a73e8;
+    color: white;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    text-decoration: none;
+    transition: background-color 0.2s;
+}
+
+.download-btn:hover {
+    background-color: #0d5bba;
+}
+
+/* Адаптивные стили */
+@media (max-width: 768px) {
+    .examples-container {
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    .example-question {
+        flex: 1 0 calc(50% - 20px);
+        min-width: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
 }
