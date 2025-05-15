@@ -57,3 +57,4 @@ async def chat_stream(message: ChatMessage):
             yield f"data: {chunk.text}\n\n"
     
     return StreamingResponse(generate(), media_type="text/event-stream")
+

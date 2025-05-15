@@ -170,6 +170,10 @@ body {
    cursor: pointer;
 }
 
+.material-card img{
+   max-width: 100px;
+}
+
 .material-card:hover {
    border-color: var(--primary-color);
    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);

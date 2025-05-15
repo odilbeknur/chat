@@ -1,145 +1,208 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // Инициализация GLightbox
+    const lightbox = GLightbox({
+        selector: '.glightbox',
+        touchNavigation: true,
+        loop: true,
+        autoplayVideos: true,
+        closeOnOutsideClick: true
+    });
+
+    // Элементы DOM
     const chatMessages = document.getElementById('chat-messages');
     const userInput = document.getElementById('user-input');
     const sendBtn = document.getElementById('send-btn');
     const typingIndicator = document.getElementById('typing-indicator');
     const recommendedMaterials = document.getElementById('recommended-materials');
 
-    // Функция показа/скрытия индикатора
+    // Показать/скрыть индикатор набора
     function showTypingIndicator(show) {
         typingIndicator.style.display = show ? 'flex' : 'none';
-        if (show) {
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        }
+        if (show) chatMessages.scrollTop = chatMessages.scrollHeight;
     }
 
-    // Добавление сообщения в чат
+    // Добавить сообщение в чат
     function addMessage(text, className) {
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${className}`;
-        
-        // Обрабатываем переносы строк
-        const formattedText = text.replace(/\n/g, '<br>');
-        messageDiv.innerHTML = formattedText;
-        
+        messageDiv.innerHTML = text.replace(/\n/g, '<br>');
         chatMessages.appendChild(messageDiv);
         chatMessages.scrollTop = chatMessages.scrollHeight;
     }
 
-    // Отображение рекомендованных материалов
+    // Определить тип файла
+    function getFileType(filename) {
+        const ext = filename.split('.').pop().toLowerCase();
+        if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) return 'image';
+        if (['mp4', 'webm', 'ogg'].includes(ext)) return 'video';
+        if (ext === 'pdf') return 'pdf';
+        if (['doc', 'docx'].includes(ext)) return 'doc';
+        return 'other';
+    }
+
+    // Отобразить рекомендуемые материалы
     async function updateRecommendedMaterials(userText) {
         try {
-            // Определяем тему
+            showTypingIndicator(true);
+            
+            // Определить тему
             const topicResponse = await fetch('/api/detect-topic', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ text: userText, user_id: 'guest' })
             });
             
-            if (!topicResponse.ok) throw new Error('Ошибка определения темы');
-            
             const { topic } = await topicResponse.json();
-
-            // Получаем материалы по теме
-            const materialsResponse = await fetch(`/api/materials/${topic}`);
-            if (!materialsResponse.ok) throw new Error('Ошибка загрузки материалов');
             
+            // Получить материалы
+            const materialsResponse = await fetch(`/api/materials/${topic}`);
             const materials = await materialsResponse.json();
             
-            // Отображаем материалы
-            displayRecommendedMaterials(materials);
+            // Отобразить
+            displayMaterials(materials);
             
         } catch (error) {
-            console.error('Ошибка при обновлении материалов:', error);
+            console.error('Ошибка:', error);
             recommendedMaterials.innerHTML = `
                 <div class="error-message">
-                    Не удалось загрузить материалы. Попробуйте позже.
+                    <i class="icon-error"></i>
+                    <p>Не удалось загрузить материалы</p>
                 </div>
             `;
+        } finally {
+            showTypingIndicator(false);
         }
     }
 
-    // Функция отображения материалов
-    function displayRecommendedMaterials(materials) {
+    // Отображение материалов с GLightbox
+    function displayMaterials(materials) {
         if (!materials || materials.length === 0) {
             recommendedMaterials.innerHTML = `
                 <div class="placeholder">
-                    <img src="/static/icons/book-icon.svg" alt="Книга">
+                    <i class="icon-info"></i>
                     <p>Материалы не найдены</p>
                 </div>
             `;
             return;
         }
 
-        recommendedMaterials.innerHTML = materials.map(material => `
-            <div class="material-card">
-                <div class="material-header">
-                    <span class="material-icon ${getFileIconClass(material.file)}"></span>
-                    <h3>${material.name}</h3>
-                </div>
-                <div class="material-footer">
-                    <span class="file-type">${getFileExtension(material.file)}</span>
-                    <a href="/static/materials/${material.file}" target="_blank" class="download-btn">
-                        Открыть
+        recommendedMaterials.innerHTML = materials.map(material => {
+            const fileUrl = `/static/materials/${material.file}`;
+            const fileType = getFileType(material.file);
+            const fileExt = material.file.split('.').pop().toUpperCase();
+
+            // Для изображений
+            if (fileType === 'image') {
+                return `
+                <div class="material-card">
+                    <a href="${fileUrl}" class="glightbox" data-gallery="gallery1" data-type="image">
+                        <img src="${fileUrl}" alt="${material.name}" class="material-preview">
+                        <div class="material-overlay">
+                            <h3>${material.name}</h3>
+                            <span class="file-badge">${fileExt}</span>
+                        </div>
                     </a>
                 </div>
-            </div>
-        `).join('');
+                `;
+            }
+            
+            // Для видео
+            else if (fileType === 'video') {
+                return `
+                <div class="material-card">
+                    <a href="${fileUrl}" class="glightbox" data-gallery="gallery1" data-type="video">
+                        <video class="material-preview" muted loop>
+                            <source src="${fileUrl}" type="video/${fileType}">
+                        </video>
+                        <div class="material-overlay">
+                            <h3>${material.name}</h3>
+                            <span class="file-badge">${fileExt}</span>
+                            <i class="play-icon"></i>
+                        </div>
+                    </a>
+                </div>
+                `;
+            }
+            
+            // Для PDF и других файлов
+            else {
+                return `
+                <div class="material-card">
+                    <a href="${fileUrl}" target="_blank" class="material-link">
+                        <div class="file-icon ${fileType}-icon"></div>
+                        <div class="material-info">
+                            <h3>${material.name}</h3>
+                            <span class="file-badge">${fileExt}</span>
+                        </div>
+                    </a>
+                </div>
+                `;
+            }
+        }).join('');
+
+        // Обновить GLightbox
+        setTimeout(() => lightbox.reload(), 100);
     }
 
-    // Получение класса иконки для файла
-    function getFileIconClass(filename) {
-        const ext = filename.split('.').pop().toLowerCase();
-        switch(ext) {
-            case 'pdf': return 'icon-pdf';
-            case 'mp4': case 'mov': return 'icon-video';
-            case 'jpg': case 'jpeg': case 'png': return 'icon-image';
-            case 'doc': case 'docx': return 'icon-doc';
-            default: return 'icon-file';
-        }
-    }
-
-    // Получение расширения файла
-    function getFileExtension(filename) {
-        return filename.split('.').pop().toUpperCase();
-    }
-
-    // Отправка сообщения
+    // Отправить сообщение
     async function sendMessage() {
         const messageText = userInput.value.trim();
         if (!messageText) return;
 
-        // Добавляем сообщение пользователя
+        // Добавить сообщение пользователя
         addMessage(messageText, 'user-message');
         userInput.value = '';
         
-        // Показываем индикатор
+        // Показать индикатор
         showTypingIndicator(true);
         
         try {
-            // Обновляем рекомендации (параллельно)
-            updateRecommendedMaterials(messageText);
-            
-            // Отправляем запрос к API
+            // Получить ответ бота
             const response = await fetch('/api/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ text: messageText, user_id: 'guest' })
             });
             
-            if (!response.ok) throw new Error('Ошибка сервера');
-            
             const data = await response.json();
             
-            // Скрываем индикатор и показываем ответ
-            showTypingIndicator(false);
+            // Добавить ответ бота
             addMessage(data.response, 'bot-message');
             
+            // Обновить рекомендации
+            await updateRecommendedMaterials(messageText);
+            
         } catch (error) {
-            showTypingIndicator(false);
             addMessage("Произошла ошибка при обработке запроса", 'bot-message error');
             console.error('Ошибка:', error);
+        } finally {
+            showTypingIndicator(false);
         }
+    }
+
+    // Инициализация примеров вопросов
+    function initExampleQuestions() {
+        const examples = [
+            "Какие средства защиты использовать при работе с высоким напряжением?",
+            "Как оказать первую помощь при ударе током?",
+            "Каковы правила пожарной безопасности на подстанции?"
+        ];
+
+        const container = document.createElement('div');
+        container.className = 'examples-container';
+        
+        examples.forEach(question => {
+            const example = document.createElement('button');
+            example.className = 'example-question';
+            example.textContent = question;
+            example.addEventListener('click', () => {
+                userInput.value = question;
+                userInput.focus();
+            });
+            container.appendChild(example);
+        });
+        
+        chatMessages.appendChild(container);
     }
 
     // Обработчики событий
@@ -148,32 +211,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.key === 'Enter') sendMessage();
     });
 
-    // Инициализация - примеры вопросов
-    const exampleQuestions = [
-        "Какие средства защиты нужно использовать при работе с высоким напряжением?",
-        "Как оказать первую помощь при ударе током?",
-        "Какие основные правила пожарной безопасности на энергообъектах?"
-    ];
-
-    // Добавляем примеры вопросов в интерфейс
-    function initExampleQuestions() {
-        const examplesContainer = document.createElement('div');    
-        examplesContainer.className = 'examples-container';
-        
-        exampleQuestions.forEach(question => {
-            const exampleBtn = document.createElement('button');
-            exampleBtn.className = 'example-question';
-            exampleBtn.textContent = question;
-            exampleBtn.addEventListener('click', () => {
-                userInput.value = question;
-                userInput.focus();
-            });
-            examplesContainer.appendChild(exampleBtn);
-        });
-        
-        chatMessages.appendChild(examplesContainer);
-    }
-
-    // Инициализируем при загрузке
+    // Инициализация
     initExampleQuestions();
 });
